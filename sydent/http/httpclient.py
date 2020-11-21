@@ -94,8 +94,8 @@ class HTTPClient(object):
         # Ensure the body object is read otherwise we'll leak HTTP connections
         # as per
         # https://twistedmatrix.com/documents/current/web/howto/client.html
-        r = yield readBody(response)
-        print("r=", r)
+        yield readBody(response)
+        
 
         defer.returnValue(response)
 
