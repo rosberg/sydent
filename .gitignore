@@ -10,4 +10,4 @@ sydent.conf
 sydent.db
 sydent.pid
 /matrix_is_test/sydent.stderr
-/matrix_sydent.egg-info/
+/matrix_sydent.egg-info/*

@@ -149,9 +149,15 @@ CONFIG_DEFAULTS = {
         'email.third_party_invite_domain_obfuscate_characters': '3',
     },
     'sms': {
+        'use_gateway': 'openmarket|teletopia',
         'bodyTemplate': 'Your code is {token}',
         'username': '',
         'password': '',
+    },
+    'sms.teletopia': {
+        'bodyTemplate': 'Your code is {token}',
+        'username': '<teletopia-account-name>',
+        'password': '<teletopia-account-password>',
     },
     'crypto': {
         'ed25519.signingkey': '',
