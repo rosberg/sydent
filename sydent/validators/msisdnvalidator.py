@@ -22,6 +22,7 @@ import phonenumbers
 from sydent.db.valsession import ThreePidValSessionStore
 from sydent.validators import common
 from sydent.sms.openmarket import OpenMarketSMS
+from sydent.sms.teletopia import TeletopiaSMS
 
 from sydent.validators import DestinationRejectedException
 
@@ -30,18 +31,35 @@ from sydent.util import time_msec
 logger = logging.getLogger(__name__)
 
 
+
 class MsisdnValidator:
+
     def __init__(self, sydent):
         self.sydent = sydent
-        self.omSms = OpenMarketSMS(sydent)
 
         # cache originators & sms rules from config file
         self.originators = {}
         self.smsRules = {}
-        for opt in self.sydent.cfg.options('sms'):
+
+
+        # Determine which gateway and config section to use, and provide reasonable defaults
+        if self.sydent.cfg.has_option("sms", "use_gateway"):
+            smsGatewayName = self.sydent.cfg.get('sms', "use_gateway")
+            if(smsGatewayName == "openmarket"):
+                smsConfigSection = self.sydent.cfg["sms"]
+            else:
+                smsConfigSection = self.sydent.cfg["sms."+smsGatewayName]
+        else:
+            smsGatewayName = "openmarket"
+            smsConfigSection = self.sydent.cfg["sms"]       
+
+        self.smsGateway = self.sms_gateway_factory(smsConfigSection, smsGatewayName)
+
+        for item in smsConfigSection.items():
+            opt = item[0]
             if opt.startswith('originators.'):
                 country = opt.split('.')[1]
-                rawVal = self.sydent.cfg.get('sms', opt)
+                rawVal = item[1]
                 rawList = [i.strip() for i in rawVal.split(',')]
 
                 self.originators[country] = []
@@ -56,13 +74,28 @@ class MsisdnValidator:
                         "text": parts[1],
                     })
             elif opt.startswith('smsrule.'):
-                country = opt.split('.')[1]
-                action = self.sydent.cfg.get('sms', opt)
+                country = opt.split('.')[1]                
+                action = item[1]
 
                 if action not in ['allow', 'reject']:
                     raise Exception("Invalid SMS rule action: %s, expecting 'allow' or 'reject'" % action)
 
                 self.smsRules[country] = action
+
+    def sms_gateway_factory(self, config_section, gateway_name="openmarket"):
+        """
+        Create the sepcified SMS gateway object, default to Openmarket if not specified
+        """
+    
+        if(gateway_name=="openmarket"):
+            return OpenMarketSMS(self.sydent, config_section)
+
+
+        if(gateway_name=="teletopia"):
+            return TeletopiaSMS(self.sydent, config_section)
+
+        raise Exception("Unknown SMS Gateway")
+
 
     def requestToken(self, phoneNumber, clientSecret, sendAttempt):
         """
@@ -110,7 +143,7 @@ class MsisdnValidator:
 
         smsBody = smsBodyTemplate.format(token=valSession.token)
 
-        self.omSms.sendTextSMS(smsBody, msisdn, originator)
+        self.smsGateway.sendTextSMS(smsBody, msisdn, originator)
 
         valSessionStore.setSendAttemptNumber(valSession.id, sendAttempt)
 

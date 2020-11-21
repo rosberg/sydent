@@ -55,9 +55,11 @@ def tonFromType(t):
 
 
 class OpenMarketSMS:
-    def __init__(self, sydent):
+    def __init__(self, sydent, config_section):
         self.sydent = sydent
         self.http_cli = SimpleHttpClient(sydent)
+        self.smsConfig = config_section
+
 
     @defer.inlineCallbacks
     def sendTextSMS(self, body, dest, source=None):
@@ -89,8 +91,8 @@ class OpenMarketSMS:
 
         # Make sure username and password are bytes otherwise we can't use them with
         # b64encode.
-        username = self.sydent.cfg.get('sms', 'username').encode("UTF-8")
-        password = self.sydent.cfg.get('sms', 'password').encode("UTF-8")
+        username = self.smsConfig.get('username').encode("UTF-8")
+        password = self.smsConfig.get('password').encode("UTF-8")
 
         b64creds = b64encode(b"%s:%s" % (username, password))
         headers = Headers({
